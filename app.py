@@ -104,7 +104,20 @@ def generate_hashtags():
         )
         
         # レスポンスの解析
-        response_data = response.json()
+        try:
+            response_data = response.json()
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse JSON from Requesty API response: {response.text}")
+            import re
+            match = re.search(r'({.*})', response.text.strip())
+            if match:
+                try:
+                    response_data = json.loads(match.group(1))
+                except json.JSONDecodeError as e2:
+                    logger.error(f"JSON extraction failed: {e2}")
+                    raise e2
+            else:
+                raise e
         logger.info(f"Requesty API response status: {response.status_code}")
         
         if response.status_code == 200:
