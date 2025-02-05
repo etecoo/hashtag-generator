@@ -17,9 +17,8 @@ def generate_hashtags():
 
     try:
         # Requsty LLM Routing Serviceへのリクエスト
-        # 実際のエンドポイントとパラメータは、Requstyのドキュメントに従って設定
         response = requests.post(
-            'https://api.requsty.com/analyze',
+            'https://router.requesty.ai/v1',
             headers={
                 'Authorization': f'Bearer {os.getenv("REQUSTY_API_KEY")}'
             },

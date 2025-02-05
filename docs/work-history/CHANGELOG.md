@@ -1,5 +1,23 @@
 # 変更履歴
 
+## [0.1.1] - 2025-02-05
+
+### 更新
+- Requsty API設定の更新
+  - エンドポイントを実際のURLに更新（https://router.requesty.ai/v1）
+  - 環境変数`REQUSTY_API_KEY`の設定をRailway用に準備
+
+### 追加
+- Railway用のデプロイ設定
+  - Procfileの作成
+  - gunicornによるプロダクション用サーバー設定
+
+### Railway設定情報
+- ビルドコマンド: `pip install -r requirements.txt`
+- スタートコマンド: Procfileに定義（`gunicorn app:app`）
+- 環境変数:
+  - REQUSTY_API_KEY: Requsty APIキー
+
 ## [0.1.0] - 2025-02-05
 
 ### 追加
