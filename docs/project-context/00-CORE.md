@@ -48,7 +48,7 @@ HashtagGenerator/
 
 ### 本番環境（Railway）
 - 環境変数:
-  - REQUSTY_API_KEY: Requsty APIキー
+  - REQUESTY_API_KEY: Requesty APIキー
   - PORT: Railwayが提供するポート
 
 ## ドキュメント管理方針
