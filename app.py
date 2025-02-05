@@ -28,9 +28,9 @@ def index():
 @app.route('/generate', methods=['POST'])
 def generate_hashtags():
     # APIキーの確認
-    api_key = os.getenv("REQUSTY_API_KEY")
+    api_key = os.getenv("REQUESTY_API_KEY")
     if not api_key:
-        logger.error("REQUSTY_API_KEY is not set")
+        logger.error("REQUESTY_API_KEY is not set")
         return jsonify({'error': 'API key is not configured'}), 500
 
     # リクエストデータの取得と検証
@@ -64,14 +64,26 @@ def generate_hashtags():
         
         logger.info(f"Request parameters: {request_data}")
         
-        response = requests.post(
-            'https://router.requesty.ai/v1',
-            headers={
-                'Authorization': f'Bearer {api_key}',
-                'Content-Type': 'application/json'
-            },
-            json=request_data
-        )
+        try:
+            response = requests.post(
+                'https://router.requesty.ai/v1',
+                headers={
+                    'Authorization': f'Bearer {api_key}',
+                    'Content-Type': 'application/json'
+                },
+                json=request_data,
+                timeout=30,  # 30秒のタイムアウト
+                verify=True  # SSL証明書の検証を明示的に有効化
+            )
+        except requests.exceptions.Timeout:
+            logger.error("Request timed out")
+            return jsonify({'error': 'Request timed out after 30 seconds'}), 500
+        except requests.exceptions.SSLError as e:
+            logger.error(f"SSL Error: {str(e)}")
+            return jsonify({'error': 'SSL verification failed'}), 500
+        except requests.exceptions.ConnectionError as e:
+            logger.error(f"Connection Error: {str(e)}")
+            return jsonify({'error': 'Failed to connect to the API service. Please check your network connection.'}), 500
         
         # レスポンスの解析
         response_data = response.json()
