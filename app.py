@@ -3,6 +3,7 @@ import requests
 import os
 import re
 import logging
+import json
 
 # ロギングの設定
 logging.basicConfig(level=logging.INFO)
@@ -73,11 +74,12 @@ def generate_hashtags():
         # Requesty LLM Routing Serviceへのリクエスト
         logger.info(f"Sending request to Requesty API for URL: {instagram_url}")
         # リクエストパラメータの設定
+        # リクエストデータの構築と検証
         request_data = {
-            'url': instagram_url,
+            'url': instagram_url.strip(),  # 余分な空白を除去
             'language': language,
             'count': count,
-            'model': 'anthropic/claude-3-5-sonnet-20241022',  # Anthropic Claude 3.5 Sonnet
+            'model': 'anthropic/claude-3-5-sonnet-20241022',
             'options': {
                 'max_tokens': 1000,
                 'temperature': 0.7,
@@ -85,18 +87,32 @@ def generate_hashtags():
             }
         }
         
+        # リクエストデータのバリデーション
+        if not isinstance(request_data['url'], str) or ';' in request_data['url']:
+            logger.error("Invalid URL format in request data")
+            return jsonify({'error': 'Invalid URL format'}), 400
+            
         logger.info(f"Request parameters: {request_data}")
         
         try:
+            # リクエストデータをJSON文字列に変換して検証
+            try:
+                json_data = json.dumps(request_data)
+                # JSON文字列を再度パースして検証
+                json.loads(json_data)
+            except json.JSONDecodeError as e:
+                logger.error(f"Invalid JSON data: {str(e)}")
+                return jsonify({'error': 'Invalid request data format'}), 400
+
             response = requests.post(
                 'https://router.requesty.ai/v1',
                 headers={
                     'Authorization': f'Bearer {api_key}',
                     'Content-Type': 'application/json'
                 },
-                json=request_data,
-                timeout=30,  # 30秒のタイムアウト
-                verify=True  # SSL証明書の検証を明示的に有効化
+                data=json_data,  # 検証済みのJSON文字列を使用
+                timeout=30,
+                verify=True
             )
         except requests.exceptions.Timeout:
             logger.error("Request timed out")
