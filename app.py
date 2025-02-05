@@ -73,63 +73,32 @@ def generate_hashtags():
     try:
         # Requesty LLM Routing Serviceへのリクエスト
         logger.info(f"Sending request to Requesty API for URL: {instagram_url}")
-        # リクエストパラメータの設定
-        try:
-            # リクエストデータの構築
-            request_data = {
-                'url': instagram_url.strip(),  # 余分な空白を除去
-                'language': language,
-                'count': count,
-                'model': 'anthropic/claude-3-5-sonnet-20241022',
-                'options': {
-                    'max_tokens': 1000,
-                    'temperature': 0.7,
-                    'hashtag_style': 'instagram'
-                }
-            }
-            
-            # JSONとしての妥当性を検証
-            json_str = json.dumps(request_data)
-            request_data = json.loads(json_str)
-            
-            # URLの最終検証
-            if not isinstance(request_data['url'], str) or len(request_data['url']) > 500:
-                raise ValueError("Invalid URL format or length")
-                
-            logger.info(f"Request parameters: {json.dumps(request_data)}")
-        except (ValueError, json.JSONDecodeError) as e:
-            logger.error(f"Request data validation error: {str(e)}")
-            return jsonify({'error': 'Invalid request format'}), 400
         
-        try:
-            # リクエストデータをJSON文字列に変換して検証
-            try:
-                json_data = json.dumps(request_data)
-                # JSON文字列を再度パースして検証
-                json.loads(json_data)
-            except json.JSONDecodeError as e:
-                logger.error(f"Invalid JSON data: {str(e)}")
-                return jsonify({'error': 'Invalid request data format'}), 400
-
-            response = requests.post(
-                'https://router.requesty.ai/v1',
-                headers={
-                    'Authorization': f'Bearer {api_key}',
-                    'Content-Type': 'application/json'
-                },
-                data=json_data,  # 検証済みのJSON文字列を使用
-                timeout=30,
-                verify=True
-            )
-        except requests.exceptions.Timeout:
-            logger.error("Request timed out")
-            return jsonify({'error': 'Request timed out after 30 seconds'}), 500
-        except requests.exceptions.SSLError as e:
-            logger.error(f"SSL Error: {str(e)}")
-            return jsonify({'error': 'SSL verification failed'}), 500
-        except requests.exceptions.ConnectionError as e:
-            logger.error(f"Connection Error: {str(e)}")
-            return jsonify({'error': 'Failed to connect to the API service. Please check your network connection.'}), 500
+        # リクエストデータの構築（シンプルに）
+        request_data = {
+            'url': instagram_url,  # 既に検証済みのURL
+            'language': language,
+            'count': count,
+            'model': 'anthropic/claude-3-5-sonnet-20241022',
+            'options': {
+                'max_tokens': 1000,
+                'temperature': 0.7,
+                'hashtag_style': 'instagram'
+            }
+        }
+        
+        logger.info(f"Request parameters: {request_data}")
+        
+        response = requests.post(
+            'https://router.requesty.ai/v1',
+            headers={
+                'Authorization': f'Bearer {api_key}',
+                'Content-Type': 'application/json'
+            },
+            json=request_data,  # requestsが自動的にJSONエンコードを行う
+            timeout=30,
+            verify=True
+        )
         
         # レスポンスの解析
         response_data = response.json()
@@ -146,6 +115,15 @@ def generate_hashtags():
             logger.error(f"Requesty API error: {error_message}")
             return jsonify({'error': f"Failed to generate hashtags: {error_message}"}), response.status_code
 
+    except requests.exceptions.Timeout:
+        logger.error("Request timed out")
+        return jsonify({'error': 'Request timed out after 30 seconds'}), 500
+    except requests.exceptions.SSLError as e:
+        logger.error(f"SSL Error: {str(e)}")
+        return jsonify({'error': 'SSL verification failed'}), 500
+    except requests.exceptions.ConnectionError as e:
+        logger.error(f"Connection Error: {str(e)}")
+        return jsonify({'error': 'Failed to connect to the API service. Please check your network connection.'}), 500
     except requests.exceptions.RequestException as e:
         logger.error(f"Request error: {str(e)}")
         return jsonify({'error': 'Failed to connect to the API service'}), 500
