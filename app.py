@@ -15,7 +15,11 @@ def validate_instagram_url(url):
     if not url:
         return False, "URLが入力されていません"
     
-    instagram_pattern = r'^https?://(?:www\.)?instagram\.com/(?:p|reel)/[\w-]+/?.*$'
+    # URLから末尾のセミコロンを除去
+    url = url.rstrip(';')
+    
+    # クエリパラメータを含むベースURLのパターン
+    instagram_pattern = r'^https?://(?:www\.)?instagram\.com/(?:p|reel)/[\w-]+/?(?:\?[^;]*)?$'
     if not re.match(instagram_pattern, url):
         return False, "無効なInstagram URLです"
     
