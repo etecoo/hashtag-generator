@@ -38,17 +38,36 @@ def generate_hashtags():
         return jsonify({'error': 'API key is not configured'}), 500
 
     # リクエストデータの取得と検証
-    data = request.get_json()
+    try:
+        data = request.get_json()
+    except Exception as e:
+        logger.error(f"JSON parse error: {str(e)}")
+        return jsonify({'error': 'Invalid JSON format'}), 400
+
     if not data:
         return jsonify({'error': 'No data provided'}), 400
 
-    instagram_url = data.get('url')
+    # URLの取得と正規化
+    instagram_url = data.get('url', '')
+    if isinstance(instagram_url, str):
+        instagram_url = instagram_url.strip().rstrip(';')
     is_valid, error_message = validate_instagram_url(instagram_url)
     if not is_valid:
         return jsonify({'error': error_message}), 400
 
+    # 言語パラメータの検証
     language = data.get('language', 'ja')
-    count = min(max(data.get('count', 10), 1), 30)
+    if not isinstance(language, str) or language not in ['ja', 'en']:
+        logger.warning(f"Invalid language parameter: {language}")
+        language = 'ja'  # デフォルト値を設定
+
+    # 生成数の検証と正規化
+    try:
+        count = int(data.get('count', 10))
+        count = min(max(count, 1), 30)
+    except (TypeError, ValueError):
+        logger.warning(f"Invalid count parameter: {data.get('count')}")
+        count = 10  # デフォルト値を設定
 
     try:
         # Requsty LLM Routing Serviceへのリクエスト
