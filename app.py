@@ -74,25 +74,32 @@ def generate_hashtags():
         # Requesty LLM Routing Serviceへのリクエスト
         logger.info(f"Sending request to Requesty API for URL: {instagram_url}")
         # リクエストパラメータの設定
-        # リクエストデータの構築と検証
-        request_data = {
-            'url': instagram_url.strip(),  # 余分な空白を除去
-            'language': language,
-            'count': count,
-            'model': 'anthropic/claude-3-5-sonnet-20241022',
-            'options': {
-                'max_tokens': 1000,
-                'temperature': 0.7,
-                'hashtag_style': 'instagram'
+        try:
+            # リクエストデータの構築
+            request_data = {
+                'url': instagram_url.strip(),  # 余分な空白を除去
+                'language': language,
+                'count': count,
+                'model': 'anthropic/claude-3-5-sonnet-20241022',
+                'options': {
+                    'max_tokens': 1000,
+                    'temperature': 0.7,
+                    'hashtag_style': 'instagram'
+                }
             }
-        }
-        
-        # リクエストデータのバリデーション
-        if not isinstance(request_data['url'], str) or ';' in request_data['url']:
-            logger.error("Invalid URL format in request data")
-            return jsonify({'error': 'Invalid URL format'}), 400
             
-        logger.info(f"Request parameters: {request_data}")
+            # JSONとしての妥当性を検証
+            json_str = json.dumps(request_data)
+            request_data = json.loads(json_str)
+            
+            # URLの最終検証
+            if not isinstance(request_data['url'], str) or len(request_data['url']) > 500:
+                raise ValueError("Invalid URL format or length")
+                
+            logger.info(f"Request parameters: {json.dumps(request_data)}")
+        except (ValueError, json.JSONDecodeError) as e:
+            logger.error(f"Request data validation error: {str(e)}")
+            return jsonify({'error': 'Invalid request format'}), 400
         
         try:
             # リクエストデータをJSON文字列に変換して検証

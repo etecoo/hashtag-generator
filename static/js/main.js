@@ -23,10 +23,17 @@ document.addEventListener('DOMContentLoaded', function() {
         result.classList.add('hidden');
         errorContainer.classList.add('hidden');
         
-        // フォームデータの取得
-        const url = document.getElementById('instagramUrl').value;
+        // フォームデータの取得と前処理
+        const url = document.getElementById('instagramUrl').value.trim().replace(/[;,\s]+$/, '');
         const language = document.querySelector('input[name="language"]:checked').value;
         const count = parseInt(hashtagCount.value);
+
+        // URLの基本的なバリデーション
+        if (!url.match(/^https?:\/\/(?:www\.)?instagram\.com\/(?:p|reel)\/[\w-]+/)) {
+            errorContainer.querySelector('div').textContent = '無効なInstagram URLです';
+            errorContainer.classList.remove('hidden');
+            return;
+        }
 
         try {
             const response = await fetch('/generate', {
