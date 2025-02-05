@@ -16,15 +16,19 @@ def validate_instagram_url(url):
     if not url:
         return False, "URLが入力されていません"
     
-    # URLから末尾のセミコロンを除去
-    url = url.rstrip(';')
-    
     # クエリパラメータを含むベースURLのパターン
     instagram_pattern = r'^https?://(?:www\.)?instagram\.com/(?:p|reel)/[\w-]+/?(?:\?[^;]*)?$'
     if not re.match(instagram_pattern, url):
         return False, "無効なInstagram URLです"
     
     return True, None
+
+def clean_url(url):
+    """URLをクリーニングする"""
+    if not isinstance(url, str):
+        return ""
+    # 空白とセミコロンを除去
+    return url.strip().rstrip(';')
 
 @app.route('/')
 def index():
@@ -49,9 +53,7 @@ def generate_hashtags():
         return jsonify({'error': 'No data provided'}), 400
 
     # URLの取得と正規化
-    instagram_url = data.get('url', '')
-    if isinstance(instagram_url, str):
-        instagram_url = instagram_url.strip().rstrip(';')
+    instagram_url = clean_url(data.get('url', ''))
     is_valid, error_message = validate_instagram_url(instagram_url)
     if not is_valid:
         return jsonify({'error': error_message}), 400
@@ -74,9 +76,9 @@ def generate_hashtags():
         # Requesty LLM Routing Serviceへのリクエスト
         logger.info(f"Sending request to Requesty API for URL: {instagram_url}")
         
-        # リクエストデータの構築（シンプルに）
+        # リクエストデータの構築
         request_data = {
-            'url': instagram_url,  # 既に検証済みのURL
+            'url': instagram_url,
             'language': language,
             'count': count,
             'model': 'anthropic/claude-3-5-sonnet-20241022',
@@ -87,7 +89,8 @@ def generate_hashtags():
             }
         }
         
-        logger.info(f"Request parameters: {request_data}")
+        # 安全なJSON文字列としてログ出力
+        logger.info(f"Request parameters: {json.dumps(request_data)}")
         
         response = requests.post(
             'https://router.requesty.ai/v1',
@@ -95,7 +98,7 @@ def generate_hashtags():
                 'Authorization': f'Bearer {api_key}',
                 'Content-Type': 'application/json'
             },
-            json=request_data,  # requestsが自動的にJSONエンコードを行う
+            json=request_data,
             timeout=30,
             verify=True
         )
