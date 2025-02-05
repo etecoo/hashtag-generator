@@ -51,7 +51,7 @@
 - 多言語対応（日本語・英語）が必要
 
 ### 決定
-- **Requsty LLM Routing Service**を採用
+- **Requesty LLM Routing Service**を採用
 
 ### 理由
 1. 高精度な画像認識機能

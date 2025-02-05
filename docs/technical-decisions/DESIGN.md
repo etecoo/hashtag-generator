@@ -6,8 +6,8 @@
 ```mermaid
 graph TD
     Client[クライアント] -->|1. POST /generate| Flask[Flaskサーバー]
-    Flask -->|2. 解析リクエスト| Requsty[Requsty LLM Service]
-    Requsty -->|3. 解析結果| Flask
+    Flask -->|2. 解析リクエスト| Requesty[Requesty LLM Service]
+    Requesty -->|3. 解析結果| Flask
     Flask -->|4. ハッシュタグ| Client
 ```
 
@@ -23,7 +23,7 @@ graph TD
   - 外部APIとの通信
 
 - **外部サービス**
-  - Requsty LLM Routing Service
+  - Requesty LLM Routing Service
   - Railway（ホスティング）
 
 ## 2. データフロー
@@ -31,7 +31,7 @@ graph TD
 ### 2.1 ハッシュタグ生成フロー
 1. ユーザーがInstagram URLを入力
 2. フロントエンドがバックエンドにリクエスト送信
-3. バックエンドがRequstyサービスに解析リクエスト
+3. バックエンドがRequestyサービスに解析リクエスト
 4. 解析結果を受け取り、ハッシュタグを生成
 5. 生成されたハッシュタグをフロントエンドに返却
 6. フロントエンドで結果を表示
@@ -80,7 +80,7 @@ graph TD
 - パラメータバリデーション
 
 ### 3.3 外部API連携
-#### Requsty LLM Service
+#### Requesty LLM Service
 - 画像解析
 - テキスト解析
 - ハッシュタグ生成ロジック
@@ -88,7 +88,7 @@ graph TD
 ## 4. セキュリティ考慮事項
 
 ### 4.1 API認証
-- Requsty APIキーの環境変数管理
+- Requesty APIキーの環境変数管理
 - Railway上でのシークレット管理
 
 ### 4.2 入力バリデーション

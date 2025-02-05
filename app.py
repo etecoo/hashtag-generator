@@ -70,8 +70,8 @@ def generate_hashtags():
         count = 10  # デフォルト値を設定
 
     try:
-        # Requsty LLM Routing Serviceへのリクエスト
-        logger.info(f"Sending request to Requsty API for URL: {instagram_url}")
+        # Requesty LLM Routing Serviceへのリクエスト
+        logger.info(f"Sending request to Requesty API for URL: {instagram_url}")
         # リクエストパラメータの設定
         request_data = {
             'url': instagram_url,
@@ -110,7 +110,7 @@ def generate_hashtags():
         
         # レスポンスの解析
         response_data = response.json()
-        logger.info(f"Requsty API response status: {response.status_code}")
+        logger.info(f"Requesty API response status: {response.status_code}")
         
         if response.status_code == 200:
             hashtags = response_data.get('hashtags', [])
@@ -120,7 +120,7 @@ def generate_hashtags():
             return jsonify({'hashtags': hashtags})
         else:
             error_message = response_data.get('error', 'Unknown error occurred')
-            logger.error(f"Requsty API error: {error_message}")
+            logger.error(f"Requesty API error: {error_message}")
             return jsonify({'error': f"Failed to generate hashtags: {error_message}"}), response.status_code
 
     except requests.exceptions.RequestException as e:

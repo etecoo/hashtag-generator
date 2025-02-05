@@ -17,7 +17,7 @@
   
 - バックエンド
   - Python/Flask
-  - Requsty LLM Routing Service（画像解析・テキスト生成）
+  - Requesty LLM Routing Service（画像解析・テキスト生成）
 
 - インフラ
   - Railway（ホスティング）
@@ -61,7 +61,7 @@ python app.py
 1. Railwayにプロジェクトを作成
 2. GitHubリポジトリと連携
 3. 環境変数の設定
-   - REQUSTY_API_KEY
+   - REQUESTY_API_KEY
 4. デプロイの実行
 
 ## API仕様
