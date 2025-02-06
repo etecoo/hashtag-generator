@@ -86,9 +86,10 @@ def generate_hashtags():
         # Requesty LLM Routing Serviceへのリクエスト
         logger.info(f"Sending request to Requesty API for URL: {instagram_url}")
         
-        # リクエストデータの構築
+        # リクエストデータの構築（セミコロンが混入しないように注意）
+        cleaned_url = instagram_url.rstrip(';')  # 末尾のセミコロンを確実に除去
         request_data = {
-            'url': instagram_url,
+            'url': cleaned_url,
             'language': language,
             'count': count,
             'model': 'anthropic/claude-3-5-sonnet-20241022',
@@ -99,8 +100,20 @@ def generate_hashtags():
             }
         }
         
-        # リクエストパラメータのログ出力（セミコロンが混入しないように修正）
-        logger.info("Request parameters:")
+        # リクエストデータの検証
+        logger.info("Request parameters (before validation):")
+        logger.info(request_data)
+        
+        # JSONとしての妥当性を検証
+        try:
+            # 一度JSONに変換して戻すことで、JSONとして正しい形式かを確認
+            validated_data = json.loads(json.dumps(request_data))
+            request_data = validated_data  # 検証済みのデータを使用
+        except json.JSONDecodeError as e:
+            logger.error(f"Invalid JSON format in request data: {e}")
+            return jsonify({'error': 'Invalid request format'}), 400
+        
+        logger.info("Validated request parameters:")
         logger.info(request_data)
         logger.info(f"Request URL: {request_data['url']}")
         logger.info(f"URL length: {len(request_data['url'])}")
