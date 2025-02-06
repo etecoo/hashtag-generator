@@ -1,4 +1,4 @@
-# 00-CORE.md
+# CORE.md
 
 ## プロジェクト概要
 このプロジェクトは「Instagram Hashtag Generator」というWebアプリケーションで、Instagramの投稿URLから関連ハッシュタグを生成します。
@@ -8,14 +8,17 @@
 
 ```
 docs/
-├── project-context/
-│   └── 00-CORE.md        # プロジェクト概要、構造、依存関係
-├── technical-decisions/
-│   ├── ADR.md            # アーキテクチャ決定記録
-│   └── DESIGN.md         # 設計文書
-└── work-history/
-    ├── CHANGELOG.md      # 変更履歴
-    └── ISSUES.md         # 問題解決の履歴
+├── active/
+│   ├── CONTEXT.md     # 現在のセッションに必要な最小限の文脈
+│   └── CURRENT.md     # 進行中のタスクと状態
+├── core/
+│   └── CORE.md        # プロジェクトの基本情報（変更頻度低）
+├── technical/         # 技術的な決定事項（参照用）
+│   ├── ADR.md         # アーキテクチャ決定記録
+│   └── DESIGN.md      # 設計文書
+└── history/          # 履歴情報（アーカイブ用）
+    ├── CHANGELOG.md   # 変更履歴
+    └── issues/        # 問題解決の履歴
 ```
 
 ## 依存関係
@@ -59,6 +62,7 @@ docs/
 - 変更内容のSource Control連携と自動プッシュ（GitHub連携）
 
 ## 更新履歴
+- 2025/02/06 - ドキュメント構造を新しい形式に移行
 - 2025/02/06 - 環境変数管理に関する情報を追加
 - 2025/02/06 - .coolclinerulesの更新に伴い、運用ルールを反映
 

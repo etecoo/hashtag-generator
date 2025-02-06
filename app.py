@@ -50,6 +50,79 @@ def clean_url(url):
     logger.info(f"Cleaned URL: {cleaned}")
     return cleaned
 
+class CustomJSONDecoder(json.JSONDecoder):
+    """カスタムJSONデコーダー - セミコロン問題に対する包括的な解決策"""
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._original_parse_string = self.parse_string
+        self.parse_string = self._custom_parse_string
+    
+    def _custom_parse_string(self, string, idx, *args, **kwargs):
+        """文字列パース時の特別な処理"""
+        # パース前の文字列の状態をログ
+        logger.debug("=== String Parse Debug ===")
+        logger.debug(f"Input string: {repr(string[idx:])}")
+        logger.debug(f"Parse position: {idx}")
+        logger.debug(f"String encoding: {string[idx:].encode('utf-8')}")
+        
+        try:
+            # 元のパーサーで文字列を解析
+            end_idx, parsed = self._original_parse_string(string, idx, *args, **kwargs)
+            
+            # パース結果の検証と正規化
+            if parsed:
+                # URLの場合の特別な処理
+                if re.match(r'https?://(?:www\.)?instagram\.com/', parsed):
+                    # セミコロンとその前後の不要な文字を除去
+                    normalized = re.sub(r'[;]+', '', parsed)
+                    normalized = re.sub(r'\s+', '', normalized)
+                    
+                    logger.debug("=== URL Normalization ===")
+                    logger.debug(f"Original: {repr(parsed)}")
+                    logger.debug(f"Normalized: {repr(normalized)}")
+                    
+                    return end_idx, normalized
+                else:
+                    # 一般的な文字列の場合
+                    normalized = parsed.strip().rstrip(';')
+                    return end_idx, normalized
+            
+            return end_idx, parsed
+            
+        except Exception as e:
+            logger.error(f"Error in custom string parser: {str(e)}")
+            raise
+    
+    def decode(self, s, *args, **kwargs):
+        """JSONデコード処理のカスタマイズ"""
+        try:
+            # デコード前の入力検証
+            if not isinstance(s, str):
+                raise json.JSONDecodeError("Input must be a string", s, 0)
+            
+            # 入力文字列の正規化
+            s = s.strip()
+            
+            # デコード処理
+            result = super().decode(s, *args, **kwargs)
+            
+            # デコード後の検証
+            if isinstance(result, dict):
+                # URLフィールドの特別な処理
+                if 'url' in result and isinstance(result['url'], str):
+                    result['url'] = re.sub(r'[;]+', '', result['url'])
+                    result['url'] = re.sub(r'\s+', '', result['url'])
+            
+            logger.debug("=== Decode Result ===")
+            logger.debug(f"Final result: {repr(result)}")
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error in custom decoder: {str(e)}")
+            raise
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -78,72 +151,12 @@ def generate_hashtags():
         if not raw_data:
             logger.error("Empty request data")
             return jsonify({'error': 'No data provided'}), 400
-            
-        # JSONデータのパース前の詳細ログ
-        logger.debug("=== JSON Parse Debug Info ===")
-        logger.debug(f"Raw data bytes: {raw_data.encode('utf-8')}")
-        logger.debug(f"Raw data repr: {repr(raw_data)}")
         
-        # JSONデータのパース前の詳細なデバッグ
-        logger.debug("=== Pre-Parse JSON Analysis ===")
-        logger.debug(f"JSON string length: {len(raw_data)}")
-        logger.debug(f"JSON string characters: {[ord(c) for c in raw_data]}")
-        
-        # カスタムJSONデコーダーの定義
-        class DebugJSONDecoder(json.JSONDecoder):
-            def decode(self, s, *args, **kwargs):
-                logger.debug("=== Custom Decoder Debug ===")
-                logger.debug(f"Input string: {repr(s)}")
-                result = super().decode(s, *args, **kwargs)
-                logger.debug(f"Decoded result: {repr(result)}")
-                return result
-
-        # JSONデータのパース（カスタムデコーダーを使用）
-        # 拡張デバッグ機能付きJSONデコーダー
-        class DebugJSONDecoder(json.JSONDecoder):
-            def decode(self, s, *args, **kwargs):
-                logger.debug("=== Custom Decoder Debug ===")
-                logger.debug(f"Input string: {repr(s)}")
-                logger.debug(f"Input string bytes: {s.encode('utf-8')}")
-                logger.debug(f"Input string length: {len(s)}")
-                logger.debug(f"Input string chars: {[ord(c) for c in s]}")
-                
-                result = super().decode(s, *args, **kwargs)
-                
-                logger.debug(f"Decoded result: {repr(result)}")
-                logger.debug(f"Result type: {type(result)}")
-                logger.debug(f"Result memory address: {id(result)}")
-                return result
-
-            def decode_string(self, s, *args, **kwargs):
-                logger.debug(f"=== String Decode Debug ===")
-                logger.debug(f"String before decode: {repr(s)}")
-                logger.debug(f"String encoding: {s.encode('utf-8')}")
-                logger.debug(f"String memory: {id(s)}")
-                logger.debug(f"String object attributes: {dir(s)}")
-                
-                result = super().decode_string(s, *args, **kwargs)
-                
-                logger.debug(f"String after decode: {repr(result)}")
-                logger.debug(f"Result encoding: {result.encode('utf-8')}")
-                logger.debug(f"Result memory: {id(result)}")
-                return result.rstrip(';')  # セミコロンを除去
-
-            def raw_decode(self, s, *args, **kwargs):
-                logger.debug("=== Raw Decode Debug ===")
-                logger.debug(f"Raw input: {repr(s)}")
-                pos, result = super().raw_decode(s, *args, **kwargs)
-                logger.debug(f"Decode position: {pos}")
-                logger.debug(f"Remaining string: {repr(s[pos:])}")
-                return pos, result
-
-        # JSONデータのパース（カスタムデコーダーを使用）
-        data = json.loads(raw_data, cls=DebugJSONDecoder)
+        # JSONデータのパース（新しいカスタムデコーダーを使用）
+        data = json.loads(raw_data, cls=CustomJSONDecoder)
         logger.debug("=== Parsed Data Debug Info ===")
         logger.debug(f"Data type: {type(data)}")
         logger.debug(f"Data repr: {repr(data)}")
-        logger.debug(f"URL type: {type(data.get('url'))}")
-        logger.debug(f"URL repr: {repr(data.get('url'))}")
         
         # URLの値を個別に検証
         if 'url' in data:
@@ -151,15 +164,6 @@ def generate_hashtags():
             logger.debug("=== URL Value Analysis ===")
             logger.debug(f"URL value bytes: {url_value.encode('utf-8')}")
             logger.debug(f"URL value chars: {[ord(c) for c in url_value]}")
-        
-        # データの検証と正規化
-        if 'url' in data and isinstance(data['url'], str):
-            original_url = data['url']
-            normalized_url = original_url.replace(';', '')
-            logger.debug("=== URL Normalization Debug Info ===")
-            logger.debug(f"Original URL repr: {repr(original_url)}")
-            logger.debug(f"Normalized URL repr: {repr(normalized_url)}")
-            data['url'] = normalized_url
             
     except json.JSONDecodeError as e:
         logger.error(f"JSON parse error: {str(e)}")
@@ -251,7 +255,6 @@ def generate_hashtags():
         return jsonify({'error': 'API authentication failed'}), 500
     except Exception as e:
         logger.error(f"Unexpected error: {str(e)}")
-        return jsonify({'error': 'An unexpected error occurred'}), 500
         return jsonify({'error': 'An unexpected error occurred'}), 500
 
 if __name__ == '__main__':
