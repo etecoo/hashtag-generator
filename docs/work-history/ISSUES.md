@@ -273,3 +273,41 @@
 #### 状態
 - [x] 実装完了
 - [ ] 動作検証待ち
+
+## [ISSUE-021] - 2025-02-06
+### Requesty LLM Service接続エラー
+#### 問題
+- 送信前のURL: https://www.instagram.com/p/DFkiqqsvq98/
+- データ内容: { "url": "https://www.instagram.com/p/DFkiqqsvq98/", "language": "ja", "count": 10 }
+- レスポンス情報:
+  * ステータス: 500
+  * データ: { "error": "Failed to connect to the API service" }
+
+#### 仮説
+1. API接続の問題：
+   - ネットワーク接続の問題
+   - APIキーの設定や認証の問題
+   - SSLの問題
+
+2. 環境変数の問題：
+   - REQUESTY_API_KEYの未設定または無効化
+   - 環境変数の読み込みエラー
+
+#### 検証計画
+1. 環境変数の確認：
+   - REQUESTY_API_KEYの存在確認
+   - APIキーの有効性確認
+
+2. ネットワーク接続の確認：
+   - Requesty APIへの疎通確認
+   - SSLの設定確認
+   - タイムアウト設定の確認
+
+3. APIサービスの状態確認：
+   - Requesty LLM Serviceのステータス確認
+   - サービスの稼働状態確認
+
+#### 状態
+- [ ] 環境変数確認待ち
+- [ ] ネットワーク接続確認待ち
+- [ ] APIサービス状態確認待ち

@@ -19,7 +19,27 @@ docs/
 ```
 
 ## 依存関係
-Flask, TailwindCSS, JavaScript (Fetch API等) を利用しています。
+### フレームワークとライブラリ
+- Flask: Webアプリケーションフレームワーク
+- TailwindCSS: CSSフレームワーク
+- JavaScript: Fetch API等のフロントエンド機能
+- OpenAI: Requesty LLM Serviceとの通信
+
+### 仮想環境
+- 場所: `/Users/ete/venvs/hashtaggenerator-venv`
+- Python バージョン: 3.13
+- 依存パッケージ: requirements.txtを参照
+
+## 環境変数管理
+### API認証情報
+- REQUESTY_API_KEY: Railwayのプロジェクト設定で管理
+- その他の環境変数は.env.exampleを参照
+
+### 環境変数の設定場所
+1. ローカル開発環境: .envファイル
+2. 本番環境: Railwayのプロジェクト設定
+   - 重要な認証情報（APIキーなど）
+   - 環境固有の設定値
 
 ## 運用ルールと文脈保持
 本プロジェクトは、プロジェクト固有の運用ルール (.coolclinerules) に基づいて運用されています。主な内容は以下の通りです:
@@ -29,7 +49,8 @@ Flask, TailwindCSS, JavaScript (Fetch API等) を利用しています。
 - 変更内容のSource Control連携と自動プッシュ（GitHub連携）
 
 ## 更新履歴
-- 最新更新: 2025/02/06 - .coolclinerulesの更新に伴い、運用ルールを反映
+- 2025/02/06 - 環境変数管理に関する情報を追加
+- 2025/02/06 - .coolclinerulesの更新に伴い、運用ルールを反映
 
 ## 備考
 詳細な運用ルールは .coolclinerules を参照してください。

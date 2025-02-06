@@ -1,15 +1,26 @@
 from flask import Flask, render_template, request, jsonify
-import requests
 import os
 import re
 import logging
 import json
+import openai
 
 # ロギングの設定
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
+
+# OpenAIクライアントの初期化
+def get_requesty_client():
+    api_key = os.getenv("REQUESTY_API_KEY")
+    if not api_key:
+        raise ValueError("REQUESTY_API_KEY is not set")
+    
+    return openai.OpenAI(
+        api_key=api_key,
+        base_url="https://router.requesty.ai/v1"
+    )
 
 def validate_instagram_url(url):
     """InstagramのURLを検証する"""
@@ -117,124 +128,57 @@ def generate_hashtags():
         logger.warning(f"Invalid count parameter: {data.get('count')}")
         count = 10  # デフォルト値を設定
 
-    try:
         # Requesty LLM Routing Serviceへのリクエスト
         logger.info(f"Sending request to Requesty API for URL: {instagram_url}")
         
-        # URLの厳密な検証とクリーニング
-        if ';' in instagram_url:
-            logger.warning(f"Semicolon found in URL: {instagram_url}")
-            instagram_url = instagram_url.replace(';', '')
-            logger.info(f"Removed semicolon from URL: {instagram_url}")
-
-        # リクエストデータの構築前に文字列を検証
-        if not isinstance(instagram_url, str):
-            logger.error("URL is not a string")
-            return jsonify({'error': 'Invalid URL format'}), 400
-
-        if not instagram_url:
-            logger.error("Empty URL after cleaning")
-            return jsonify({'error': 'Invalid URL format'}), 400
-
-        # リクエストデータの構築と検証
-        def check_semicolon(obj):
-            if isinstance(obj, dict):
-                return any(check_semicolon(v) for v in obj.values())
-            elif isinstance(obj, list):
-                return any(check_semicolon(v) for v in obj)
-            elif isinstance(obj, str):
-                return ';' in obj
-            return False
-
-        # リクエストデータの構築
-        request_data = {
-            'url': instagram_url.strip(),  # 余分な空白を除去
-            'language': language,
-            'count': count,
-            'model': 'anthropic/claude-3-5-sonnet-20241022',
-            'options': {
-                'max_tokens': 1000,
-                'temperature': 0.7,
-                'hashtag_style': 'instagram'
-            }
-        }
+        client = get_requesty_client()
         
-        # JSONシリアライズ/デシリアライズで検証
-        request_json = json.dumps(request_data)
-        validated_data = json.loads(request_json)
-        
-        # セミコロンの存在チェック
-        if check_semicolon(validated_data):
-            logger.error("Semicolon found in validated request data")
-            return jsonify({'error': 'Invalid character (semicolon) in request'}), 400
-        
-        request_data = validated_data  # 検証済みデータを使用
+        # プロンプトの構築
+        prompt = f"""
+        以下のInstagram投稿に関連するハッシュタグを{count}個生成してください。
+        URL: {instagram_url}
+        言語: {'日本語' if language == 'ja' else '英語'}
+        """
 
-        logger.info("Request parameters:")
-        logger.info(request_data)
-        
-        logger.info("Validated request parameters:")
-        logger.info(request_data)
-        logger.info(f"Request URL: {request_data['url']}")
-        logger.info(f"URL length: {len(request_data['url'])}")
-        
-        response = requests.post(
-            'https://router.requesty.ai/v1',
-            headers={
-                'Authorization': f'Bearer {api_key}',
-                'Content-Type': 'application/json'
-            },
-            json=request_data,
-            timeout=30,
-            verify=True
+        # OpenAIクライアントを使用してリクエスト
+        response = client.chat.completions.create(
+            model="anthropic/claude-3-5-sonnet-20241022",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "あなたはInstagramのハッシュタグ生成の専門家です。"
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            max_tokens=1000,
+            temperature=0.7
         )
-        # レスポンス全文ログ出力:
-        # APIから返されたレスポンス全文をログに出力することで、
-        # JSONパースエラーの原因となる余分な文字列（例：プレフィックスや複数のJSONオブジェクト）を確認できるようにしています。
-        logger.info(f"Full Requesty API response text: {response.text}")
-        
-        # レスポンスの解析: 取得したレスポンスをJSON形式に変換します。
-        try:
-            response_data = response.json()
-        except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse JSON from Requesty API response: {response.text}")
-            import re
-            match = re.search(r'({.*})', response.text.strip())
-            if match:
-                logger.info(f"Regex match extracted JSON string: {match.group(1)}")
-                try:
-                    response_data = json.loads(match.group(1))
-                except json.JSONDecodeError as e2:
-                    logger.error(f"JSON extraction failed: {e2}")
-                    raise e2
-            else:
-                raise e
-        logger.info(f"Extracted JSON: {response_data}")
-        logger.info(f"Requesty API response status: {response.status_code}")
-        
-        if response.status_code == 200:
-            hashtags = response_data.get('hashtags', [])
-            if not hashtags:
-                logger.warning("No hashtags generated from valid response")
-                return jsonify({'error': 'No hashtags were generated'}), 500
-            return jsonify({'hashtags': hashtags})
-        else:
-            error_message = response_data.get('error', 'Unknown error occurred')
-            logger.error(f"Requesty API error: {error_message}")
-            return jsonify({'error': f"Failed to generate hashtags: {error_message}"}), response.status_code
 
-    except requests.exceptions.Timeout:
-        logger.error("Request timed out")
-        return jsonify({'error': 'Request timed out after 30 seconds'}), 500
-    except requests.exceptions.SSLError as e:
-        logger.error(f"SSL Error: {str(e)}")
-        return jsonify({'error': 'SSL verification failed'}), 500
-    except requests.exceptions.ConnectionError as e:
+        # レスポンスからハッシュタグを抽出
+        generated_text = response.choices[0].message.content
+        hashtags = [tag.strip() for tag in generated_text.split() if tag.startswith('#')]
+
+        if not hashtags:
+            logger.warning("No hashtags generated from valid response")
+            return jsonify({'error': 'No hashtags were generated'}), 500
+
+        return jsonify({'hashtags': hashtags[:count]})
+
+    except openai.APIError as e:
+        logger.error(f"OpenAI API error: {str(e)}")
+        return jsonify({'error': f"Failed to generate hashtags: {str(e)}"}), 500
+    except openai.APIConnectionError as e:
         logger.error(f"Connection Error: {str(e)}")
         return jsonify({'error': 'Failed to connect to the API service. Please check your network connection.'}), 500
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Request error: {str(e)}")
-        return jsonify({'error': 'Failed to connect to the API service'}), 500
+    except openai.APITimeoutError as e:
+        logger.error(f"Timeout Error: {str(e)}")
+        return jsonify({'error': 'Request timed out'}), 500
+    except openai.AuthenticationError as e:
+        logger.error(f"Authentication Error: {str(e)}")
+        return jsonify({'error': 'API authentication failed'}), 500
     except Exception as e:
         logger.error(f"Unexpected error: {str(e)}")
         return jsonify({'error': 'An unexpected error occurred'}), 500
