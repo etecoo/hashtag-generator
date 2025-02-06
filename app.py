@@ -27,9 +27,16 @@ def clean_url(url):
     """URLをクリーニングする"""
     if not isinstance(url, str):
         return ""
-    # 空白と全てのセミコロンを除去
-    cleaned = url.replace(';','').strip()
-    logger.debug(f"Cleaned URL (repr): {repr(cleaned)}")
+    
+    # URLからクエリパラメータを除去し、基本的なパスのみを保持
+    base_url_pattern = r'(https?://(?:www\.)?instagram\.com/(?:p|reel)/[\w-]+)/?'
+    match = re.match(base_url_pattern, url)
+    if not match:
+        return ""
+    
+    cleaned = match.group(1)
+    logger.info(f"Original URL: {url}")
+    logger.info(f"Cleaned URL: {cleaned}")
     return cleaned
 
 @app.route('/')
@@ -92,9 +99,11 @@ def generate_hashtags():
             }
         }
         
-        # 安全なJSON文字列としてログ出力
-        logger.info(f"Request parameters: {json.dumps(request_data)}")
-        logger.info(f"Request URL (repr): {repr(request_data['url'])}, length: {len(request_data['url'])}")
+        # リクエストパラメータのログ出力（セミコロンが混入しないように修正）
+        logger.info("Request parameters:")
+        logger.info(request_data)
+        logger.info(f"Request URL: {request_data['url']}")
+        logger.info(f"URL length: {len(request_data['url'])}")
         
         response = requests.post(
             'https://router.requesty.ai/v1',
