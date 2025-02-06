@@ -99,21 +99,43 @@ def generate_hashtags():
                 return result
 
         # JSONデータのパース（カスタムデコーダーを使用）
-        # カスタムJSONデコーダーの定義
+        # 拡張デバッグ機能付きJSONデコーダー
         class DebugJSONDecoder(json.JSONDecoder):
             def decode(self, s, *args, **kwargs):
                 logger.debug("=== Custom Decoder Debug ===")
                 logger.debug(f"Input string: {repr(s)}")
+                logger.debug(f"Input string bytes: {s.encode('utf-8')}")
+                logger.debug(f"Input string length: {len(s)}")
+                logger.debug(f"Input string chars: {[ord(c) for c in s]}")
+                
                 result = super().decode(s, *args, **kwargs)
+                
                 logger.debug(f"Decoded result: {repr(result)}")
+                logger.debug(f"Result type: {type(result)}")
+                logger.debug(f"Result memory address: {id(result)}")
                 return result
 
             def decode_string(self, s, *args, **kwargs):
                 logger.debug(f"=== String Decode Debug ===")
                 logger.debug(f"String before decode: {repr(s)}")
+                logger.debug(f"String encoding: {s.encode('utf-8')}")
+                logger.debug(f"String memory: {id(s)}")
+                logger.debug(f"String object attributes: {dir(s)}")
+                
                 result = super().decode_string(s, *args, **kwargs)
+                
                 logger.debug(f"String after decode: {repr(result)}")
+                logger.debug(f"Result encoding: {result.encode('utf-8')}")
+                logger.debug(f"Result memory: {id(result)}")
                 return result.rstrip(';')  # セミコロンを除去
+
+            def raw_decode(self, s, *args, **kwargs):
+                logger.debug("=== Raw Decode Debug ===")
+                logger.debug(f"Raw input: {repr(s)}")
+                pos, result = super().raw_decode(s, *args, **kwargs)
+                logger.debug(f"Decode position: {pos}")
+                logger.debug(f"Remaining string: {repr(s[pos:])}")
+                return pos, result
 
         # JSONデータのパース（カスタムデコーダーを使用）
         data = json.loads(raw_data, cls=DebugJSONDecoder)
