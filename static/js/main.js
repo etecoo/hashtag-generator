@@ -43,19 +43,31 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         // バックエンド API (/generate) へのリクエスト処理
+        // バックエンド API (/generate) へのリクエスト処理
         try {
             // リクエストデータの準備と検証
             const requestData = { url, language, count };
-            console.log('送信前のURL:', url);
-            console.log('JSON変換前のデータ:', requestData);
+            
+            // デバッグ情報をUIに表示
+            const debugInfo = document.createElement('div');
+            debugInfo.className = 'mt-4 p-4 bg-gray-100 rounded-md text-sm font-mono';
+            debugInfo.innerHTML = `
+                <div class="mb-2">送信前のURL: ${url}</div>
+                <div class="mb-2">データ内容: ${JSON.stringify(requestData, null, 2)}</div>
+            `;
             
             const jsonData = JSON.stringify(requestData);
-            console.log('JSON変換後のデータ:', jsonData);
             
             // セミコロンの存在チェック
             if (jsonData.includes(';')) {
-                console.warn('JSON変換後にセミコロンが検出されました:', jsonData);
+                debugInfo.innerHTML += `
+                    <div class="text-red-600">警告: JSON内にセミコロンが検出されました</div>
+                    <div class="text-red-600">JSON: ${jsonData}</div>
+                `;
             }
+            
+            // デバッグ情報を表示
+            errorContainer.insertAdjacentElement('beforebegin', debugInfo);
 
             const response = await fetch('/generate', {
                 method: 'POST',
@@ -64,7 +76,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 body: jsonData
             });
-            const data = await response.json();
             if (response.ok) {
                 // 生成されたハッシュタグの表示
                 hashtagsContainer.innerHTML = data.hashtags
