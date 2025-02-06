@@ -17,10 +17,10 @@ def get_requesty_client():
     if not api_key:
         raise ValueError("REQUESTY_API_KEY is not set")
     
-    client = openai.OpenAI()
-    client.api_key = api_key
-    client.base_url = "https://router.requesty.ai/v1"
-    return client
+    return openai.OpenAI(
+        api_key=api_key,
+        base_url="https://router.requesty.ai/v1"
+    )
 
 def validate_instagram_url(url):
     """InstagramのURLを検証する"""
@@ -84,13 +84,51 @@ def generate_hashtags():
         logger.debug(f"Raw data bytes: {raw_data.encode('utf-8')}")
         logger.debug(f"Raw data repr: {repr(raw_data)}")
         
-        # JSONデータのパース
-        data = json.loads(raw_data)
+        # JSONデータのパース前の詳細なデバッグ
+        logger.debug("=== Pre-Parse JSON Analysis ===")
+        logger.debug(f"JSON string length: {len(raw_data)}")
+        logger.debug(f"JSON string characters: {[ord(c) for c in raw_data]}")
+        
+        # カスタムJSONデコーダーの定義
+        class DebugJSONDecoder(json.JSONDecoder):
+            def decode(self, s, *args, **kwargs):
+                logger.debug("=== Custom Decoder Debug ===")
+                logger.debug(f"Input string: {repr(s)}")
+                result = super().decode(s, *args, **kwargs)
+                logger.debug(f"Decoded result: {repr(result)}")
+                return result
+
+        # JSONデータのパース（カスタムデコーダーを使用）
+        # カスタムJSONデコーダーの定義
+        class DebugJSONDecoder(json.JSONDecoder):
+            def decode(self, s, *args, **kwargs):
+                logger.debug("=== Custom Decoder Debug ===")
+                logger.debug(f"Input string: {repr(s)}")
+                result = super().decode(s, *args, **kwargs)
+                logger.debug(f"Decoded result: {repr(result)}")
+                return result
+
+            def decode_string(self, s, *args, **kwargs):
+                logger.debug(f"=== String Decode Debug ===")
+                logger.debug(f"String before decode: {repr(s)}")
+                result = super().decode_string(s, *args, **kwargs)
+                logger.debug(f"String after decode: {repr(result)}")
+                return result.rstrip(';')  # セミコロンを除去
+
+        # JSONデータのパース（カスタムデコーダーを使用）
+        data = json.loads(raw_data, cls=DebugJSONDecoder)
         logger.debug("=== Parsed Data Debug Info ===")
         logger.debug(f"Data type: {type(data)}")
         logger.debug(f"Data repr: {repr(data)}")
         logger.debug(f"URL type: {type(data.get('url'))}")
         logger.debug(f"URL repr: {repr(data.get('url'))}")
+        
+        # URLの値を個別に検証
+        if 'url' in data:
+            url_value = data['url']
+            logger.debug("=== URL Value Analysis ===")
+            logger.debug(f"URL value bytes: {url_value.encode('utf-8')}")
+            logger.debug(f"URL value chars: {[ord(c) for c in url_value]}")
         
         # データの検証と正規化
         if 'url' in data and isinstance(data['url'], str):
