@@ -44,12 +44,25 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // バックエンド API (/generate) へのリクエスト処理
         try {
+            // リクエストデータの準備と検証
+            const requestData = { url, language, count };
+            console.log('送信前のURL:', url);
+            console.log('JSON変換前のデータ:', requestData);
+            
+            const jsonData = JSON.stringify(requestData);
+            console.log('JSON変換後のデータ:', jsonData);
+            
+            // セミコロンの存在チェック
+            if (jsonData.includes(';')) {
+                console.warn('JSON変換後にセミコロンが検出されました:', jsonData);
+            }
+
             const response = await fetch('/generate', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ url, language, count })
+                body: jsonData
             });
             const data = await response.json();
             if (response.ok) {
