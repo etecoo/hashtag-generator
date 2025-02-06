@@ -554,3 +554,47 @@
 #### 状態
 - [x] 実装完了
 - [ ] 動作検証待ち
+
+## [ISSUE-020] - 2025-02-06
+### リクエストデータ処理の構造的改善
+#### 問題の背景
+- コードの構造的な問題（インデント、重複したreturn文）
+- try-exceptブロックの不適切な入れ子
+- セミコロンチェック処理の散在
+
+#### 実装した修正
+1. コード構造の改善：
+   - インデントの修正
+   - 重複したreturn文の削除
+   - try-exceptブロックの整理
+
+2. セミコロンチェック処理の統合：
+   ```python
+   def check_semicolon(obj):
+       if isinstance(obj, dict):
+           return any(check_semicolon(v) for v in obj.values())
+       elif isinstance(obj, list):
+           return any(check_semicolon(v) for v in obj)
+       elif isinstance(obj, str):
+           return ';' in obj
+       return False
+   ```
+
+3. リクエストデータ検証の強化：
+   - JSONシリアライズ/デシリアライズによる検証
+   - 階層的なセミコロンチェック
+   - 検証済みデータの使用
+
+#### 期待される効果
+- コードの可読性向上
+- エラー処理の信頼性向上
+- データ検証の確実性向上
+
+#### 検証項目
+1. リクエストデータの正常な処理
+2. エラー時の適切なハンドリング
+3. セミコロンチェックの確実な実行
+
+#### 状態
+- [x] 実装完了
+- [ ] 動作検証待ち

@@ -136,9 +136,19 @@ def generate_hashtags():
             logger.error("Empty URL after cleaning")
             return jsonify({'error': 'Invalid URL format'}), 400
 
+        # リクエストデータの構築と検証
+        def check_semicolon(obj):
+            if isinstance(obj, dict):
+                return any(check_semicolon(v) for v in obj.values())
+            elif isinstance(obj, list):
+                return any(check_semicolon(v) for v in obj)
+            elif isinstance(obj, str):
+                return ';' in obj
+            return False
+
         # リクエストデータの構築
         request_data = {
-            'url': instagram_url,  # セミコロンが除去されたURL
+            'url': instagram_url.strip(),  # 余分な空白を除去
             'language': language,
             'count': count,
             'model': 'anthropic/claude-3-5-sonnet-20241022',
@@ -148,12 +158,17 @@ def generate_hashtags():
                 'hashtag_style': 'instagram'
             }
         }
-
-        # リクエストデータの文字列表現を確認
-        request_str = str(request_data)
-        if ';' in request_str:
-            logger.error(f"Semicolon found in request data: {request_str}")
-            return jsonify({'error': 'Invalid character in request'}), 400
+        
+        # JSONシリアライズ/デシリアライズで検証
+        request_json = json.dumps(request_data)
+        validated_data = json.loads(request_json)
+        
+        # セミコロンの存在チェック
+        if check_semicolon(validated_data):
+            logger.error("Semicolon found in validated request data")
+            return jsonify({'error': 'Invalid character (semicolon) in request'}), 400
+        
+        request_data = validated_data  # 検証済みデータを使用
 
         logger.info("Request parameters:")
         logger.info(request_data)
