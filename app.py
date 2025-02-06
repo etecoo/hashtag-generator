@@ -17,10 +17,10 @@ def get_requesty_client():
     if not api_key:
         raise ValueError("REQUESTY_API_KEY is not set")
     
-    return openai.OpenAI(
-        api_key=api_key,
-        base_url="https://router.requesty.ai/v1"
-    )
+    client = openai.OpenAI()
+    client.api_key = api_key
+    client.base_url = "https://router.requesty.ai/v1"
+    return client
 
 def validate_instagram_url(url):
     """InstagramのURLを検証する"""
@@ -79,17 +79,27 @@ def generate_hashtags():
             logger.error("Empty request data")
             return jsonify({'error': 'No data provided'}), 400
             
+        # JSONデータのパース前の詳細ログ
+        logger.debug("=== JSON Parse Debug Info ===")
+        logger.debug(f"Raw data bytes: {raw_data.encode('utf-8')}")
+        logger.debug(f"Raw data repr: {repr(raw_data)}")
+        
         # JSONデータのパース
         data = json.loads(raw_data)
-        logger.info("Parsed JSON data:")
-        logger.info(f"Type: {type(data)}")
-        logger.info(f"Content: {data}")
+        logger.debug("=== Parsed Data Debug Info ===")
+        logger.debug(f"Data type: {type(data)}")
+        logger.debug(f"Data repr: {repr(data)}")
+        logger.debug(f"URL type: {type(data.get('url'))}")
+        logger.debug(f"URL repr: {repr(data.get('url'))}")
         
-        # セミコロンチェック
-        if ';' in str(data):
-            logger.warning("Semicolon found in parsed data")
-            # セミコロンを含む場合はエラーとして扱う
-            return jsonify({'error': 'Invalid character (semicolon) in request data'}), 400
+        # データの検証と正規化
+        if 'url' in data and isinstance(data['url'], str):
+            original_url = data['url']
+            normalized_url = original_url.replace(';', '')
+            logger.debug("=== URL Normalization Debug Info ===")
+            logger.debug(f"Original URL repr: {repr(original_url)}")
+            logger.debug(f"Normalized URL repr: {repr(normalized_url)}")
+            data['url'] = normalized_url
             
     except json.JSONDecodeError as e:
         logger.error(f"JSON parse error: {str(e)}")
