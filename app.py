@@ -54,6 +54,7 @@ def generate_hashtags():
 
     # URLの取得と正規化
     instagram_url = clean_url(data.get('url', ''))
+    logger.info(f"Cleaned Instagram URL: {instagram_url}")
     is_valid, error_message = validate_instagram_url(instagram_url)
     if not is_valid:
         return jsonify({'error': error_message}), 400
@@ -102,8 +103,12 @@ def generate_hashtags():
             timeout=30,
             verify=True
         )
+        # レスポンス全文ログ出力:
+        # APIから返されたレスポンス全文をログに出力することで、
+        # JSONパースエラーの原因となる余分な文字列（例：プレフィックスや複数のJSONオブジェクト）を確認できるようにしています。
+        logger.info(f"Full Requesty API response text: {response.text}")
         
-        # レスポンスの解析
+        # レスポンスの解析: 取得したレスポンスをJSON形式に変換します。
         try:
             response_data = response.json()
         except json.JSONDecodeError as e:
@@ -111,6 +116,7 @@ def generate_hashtags():
             import re
             match = re.search(r'({.*})', response.text.strip())
             if match:
+                logger.info(f"Regex match extracted JSON string: {match.group(1)}")
                 try:
                     response_data = json.loads(match.group(1))
                 except json.JSONDecodeError as e2:
@@ -118,6 +124,7 @@ def generate_hashtags():
                     raise e2
             else:
                 raise e
+        logger.info(f"Extracted JSON: {response_data}")
         logger.info(f"Requesty API response status: {response.status_code}")
         
         if response.status_code == 200:
