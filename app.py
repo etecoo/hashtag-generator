@@ -86,10 +86,24 @@ def generate_hashtags():
         # Requesty LLM Routing Serviceへのリクエスト
         logger.info(f"Sending request to Requesty API for URL: {instagram_url}")
         
-        # リクエストデータの構築（セミコロンが混入しないように注意）
-        cleaned_url = instagram_url.rstrip(';')  # 末尾のセミコロンを確実に除去
+        # URLの厳密な検証とクリーニング
+        if ';' in instagram_url:
+            logger.warning(f"Semicolon found in URL: {instagram_url}")
+            instagram_url = instagram_url.replace(';', '')
+            logger.info(f"Removed semicolon from URL: {instagram_url}")
+
+        # リクエストデータの構築前に文字列を検証
+        if not isinstance(instagram_url, str):
+            logger.error("URL is not a string")
+            return jsonify({'error': 'Invalid URL format'}), 400
+
+        if not instagram_url:
+            logger.error("Empty URL after cleaning")
+            return jsonify({'error': 'Invalid URL format'}), 400
+
+        # リクエストデータの構築
         request_data = {
-            'url': cleaned_url,
+            'url': instagram_url,  # セミコロンが除去されたURL
             'language': language,
             'count': count,
             'model': 'anthropic/claude-3-5-sonnet-20241022',
@@ -99,19 +113,15 @@ def generate_hashtags():
                 'hashtag_style': 'instagram'
             }
         }
-        
-        # リクエストデータの検証
-        logger.info("Request parameters (before validation):")
+
+        # リクエストデータの文字列表現を確認
+        request_str = str(request_data)
+        if ';' in request_str:
+            logger.error(f"Semicolon found in request data: {request_str}")
+            return jsonify({'error': 'Invalid character in request'}), 400
+
+        logger.info("Request parameters:")
         logger.info(request_data)
-        
-        # JSONとしての妥当性を検証
-        try:
-            # 一度JSONに変換して戻すことで、JSONとして正しい形式かを確認
-            validated_data = json.loads(json.dumps(request_data))
-            request_data = validated_data  # 検証済みのデータを使用
-        except json.JSONDecodeError as e:
-            logger.error(f"Invalid JSON format in request data: {e}")
-            return jsonify({'error': 'Invalid request format'}), 400
         
         logger.info("Validated request parameters:")
         logger.info(request_data)
