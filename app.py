@@ -27,8 +27,10 @@ def clean_url(url):
     """URLをクリーニングする"""
     if not isinstance(url, str):
         return ""
-    # 空白とセミコロンを除去
-    return url.strip().rstrip(';')
+    # 空白と全てのセミコロンを除去
+    cleaned = url.replace(';','').strip()
+    logger.debug(f"Cleaned URL (repr): {repr(cleaned)}")
+    return cleaned
 
 @app.route('/')
 def index():
