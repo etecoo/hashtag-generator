@@ -94,6 +94,7 @@ def generate_hashtags():
         
         # 安全なJSON文字列としてログ出力
         logger.info(f"Request parameters: {json.dumps(request_data)}")
++        logger.info(f"Request URL (repr): {repr(request_data['url'])}, length: {len(request_data['url'])}")
         
         response = requests.post(
             'https://router.requesty.ai/v1',
@@ -140,21 +141,21 @@ def generate_hashtags():
             logger.error(f"Requesty API error: {error_message}")
             return jsonify({'error': f"Failed to generate hashtags: {error_message}"}), response.status_code
 
-    except requests.exceptions.Timeout:
-        logger.error("Request timed out")
-        return jsonify({'error': 'Request timed out after 30 seconds'}), 500
-    except requests.exceptions.SSLError as e:
-        logger.error(f"SSL Error: {str(e)}")
-        return jsonify({'error': 'SSL verification failed'}), 500
-    except requests.exceptions.ConnectionError as e:
-        logger.error(f"Connection Error: {str(e)}")
-        return jsonify({'error': 'Failed to connect to the API service. Please check your network connection.'}), 500
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Request error: {str(e)}")
-        return jsonify({'error': 'Failed to connect to the API service'}), 500
-    except Exception as e:
-        logger.error(f"Unexpected error: {str(e)}")
-        return jsonify({'error': 'An unexpected error occurred'}), 500
+        except requests.exceptions.Timeout:
+            logger.error("Request timed out")
+            return jsonify({'error': 'Request timed out after 30 seconds'}), 500
+        except requests.exceptions.SSLError as e:
+            logger.error(f"SSL Error: {str(e)}")
+            return jsonify({'error': 'SSL verification failed'}), 500
+        except requests.exceptions.ConnectionError as e:
+            logger.error(f"Connection Error: {str(e)}")
+            return jsonify({'error': 'Failed to connect to the API service. Please check your network connection.'}), 500
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Request error: {str(e)}")
+            return jsonify({'error': 'Failed to connect to the API service'}), 500
+        except Exception as e:
+            logger.error(f"Unexpected error: {str(e)}")
+            return jsonify({'error': 'An unexpected error occurred'}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
