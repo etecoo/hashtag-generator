@@ -120,7 +120,6 @@ def generate_hashtags():
         logger.warning(f"Invalid language parameter: {language}")
         language = 'ja'  # デフォルト値を設定
 
-    # 生成数の検証と正規化
     try:
         count = int(data.get('count', 10))
         count = min(max(count, 1), 30)
@@ -128,6 +127,7 @@ def generate_hashtags():
         logger.warning(f"Invalid count parameter: {data.get('count')}")
         count = 10  # デフォルト値を設定
 
+    try:
         # Requesty LLM Routing Serviceへのリクエスト
         logger.info(f"Sending request to Requesty API for URL: {instagram_url}")
         
@@ -181,6 +181,7 @@ def generate_hashtags():
         return jsonify({'error': 'API authentication failed'}), 500
     except Exception as e:
         logger.error(f"Unexpected error: {str(e)}")
+        return jsonify({'error': 'An unexpected error occurred'}), 500
         return jsonify({'error': 'An unexpected error occurred'}), 500
 
 if __name__ == '__main__':
