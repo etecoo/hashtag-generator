@@ -58,13 +58,35 @@ def generate_hashtags():
 
     # リクエストデータの取得と検証
     try:
-        data = request.get_json()
+        raw_data = request.get_data(as_text=True)
+        logger.info("Raw request data before parsing:")
+        logger.info(f"Raw data: {raw_data}")
+        logger.info(f"Raw data type: {type(raw_data)}")
+        
+        # 文字列が空でないことを確認
+        if not raw_data:
+            logger.error("Empty request data")
+            return jsonify({'error': 'No data provided'}), 400
+            
+        # JSONデータのパース
+        data = json.loads(raw_data)
         logger.info("Parsed JSON data:")
         logger.info(f"Type: {type(data)}")
         logger.info(f"Content: {data}")
-    except Exception as e:
+        
+        # セミコロンチェック
+        if ';' in str(data):
+            logger.warning("Semicolon found in parsed data")
+            # セミコロンを含む場合はエラーとして扱う
+            return jsonify({'error': 'Invalid character (semicolon) in request data'}), 400
+            
+    except json.JSONDecodeError as e:
         logger.error(f"JSON parse error: {str(e)}")
+        logger.error(f"Raw data causing error: {raw_data}")
         return jsonify({'error': 'Invalid JSON format'}), 400
+    except Exception as e:
+        logger.error(f"Unexpected error during request processing: {str(e)}")
+        return jsonify({'error': 'Error processing request data'}), 400
 
     if not data:
         return jsonify({'error': 'No data provided'}), 400

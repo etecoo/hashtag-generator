@@ -76,14 +76,31 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 body: jsonData
             });
+            // レスポンスデータの取得
+            const data = await response.json();
+            
+            // デバッグ情報の更新
+            debugInfo.innerHTML += `
+                <div class="mt-2 border-t pt-2">
+                    <div class="font-bold">レスポンス情報:</div>
+                    <div>ステータス: ${response.status}</div>
+                    <div>データ: ${JSON.stringify(data, null, 2)}</div>
+                </div>
+            `;
+
             if (response.ok) {
-                // 生成されたハッシュタグの表示
-                hashtagsContainer.innerHTML = data.hashtags
-                    .map(tag => `<span class="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded mr-2 mb-2">${tag}</span>`)
-                    .join('');
-                result.classList.remove('hidden');
+                if (data.hashtags && Array.isArray(data.hashtags)) {
+                    // 生成されたハッシュタグの表示
+                    hashtagsContainer.innerHTML = data.hashtags
+                        .map(tag => `<span class="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded mr-2 mb-2">${tag}</span>`)
+                        .join('');
+                    result.classList.remove('hidden');
+                } else {
+                    throw new Error('Invalid response format: hashtags array not found');
+                }
             } else {
-                errorContainer.querySelector('div').textContent = data.error;
+                const errorMessage = data.error || 'Unknown error occurred';
+                errorContainer.querySelector('div').textContent = errorMessage;
                 errorContainer.classList.remove('hidden');
             }
         } catch (error) {
