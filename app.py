@@ -51,15 +51,28 @@ def generate_hashtags():
         logger.error("REQUESTY_API_KEY is not set")
         return jsonify({'error': 'API key is not configured'}), 500
 
+    # リクエストの生データを確認
+    logger.info("Raw request data:")
+    logger.info(f"Content-Type: {request.content_type}")
+    logger.info(f"Raw data: {request.get_data(as_text=True)}")
+
     # リクエストデータの取得と検証
     try:
         data = request.get_json()
+        logger.info("Parsed JSON data:")
+        logger.info(f"Type: {type(data)}")
+        logger.info(f"Content: {data}")
     except Exception as e:
         logger.error(f"JSON parse error: {str(e)}")
         return jsonify({'error': 'Invalid JSON format'}), 400
 
     if not data:
         return jsonify({'error': 'No data provided'}), 400
+
+    # URLの存在確認と型チェック
+    if 'url' not in data or not isinstance(data['url'], str):
+        logger.error(f"Invalid URL in request data: {data.get('url')}")
+        return jsonify({'error': 'Invalid URL format'}), 400
 
     # URLの取得と正規化
     instagram_url = clean_url(data.get('url', ''))
