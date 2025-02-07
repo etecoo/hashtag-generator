@@ -77,57 +77,94 @@ class CustomJSONDecoder(json.JSONDecoder):
             # パース前の文字列の状態をログ
             logger.debug("=== String Parse Debug ===")
             logger.debug(f"Input string: {repr(string[idx:])}")
+            logger.debug(f"Input string bytes: {string[idx:].encode('utf-8')}")
+            logger.debug(f"Input string chars: {[ord(c) for c in string[idx:]]}")
             
             # 元のパーサーで文字列を解析
             end_idx, parsed = self._original_parse_string(string, idx, *args, **kwargs)
+            logger.debug(f"Original parse result: {repr(parsed)}")
+            logger.debug(f"Original parse end_idx: {end_idx}")
             
             # パース結果の検証と正規化
             if parsed and isinstance(parsed, str):
+                logger.debug(f"Parsed string bytes: {parsed.encode('utf-8')}")
+                logger.debug(f"Parsed string chars: {[ord(c) for c in parsed]}")
+                
                 # URLの場合の特別な処理
                 if re.match(r'https?://(?:www\.)?instagram\.com/', parsed):
+                    logger.debug("=== URL String Detected ===")
+                    logger.debug(f"Before normalization: {repr(parsed)}")
                     normalized = self._normalize_url(parsed)
-                    logger.debug(f"Normalized URL: {normalized}")
+                    logger.debug(f"After normalization: {repr(normalized)}")
+                    logger.debug(f"Normalized bytes: {normalized.encode('utf-8')}")
+                    logger.debug(f"Normalized chars: {[ord(c) for c in normalized]}")
                     return end_idx, normalized
             
             return end_idx, parsed
             
         except Exception as e:
             logger.error(f"Error in custom string parser: {str(e)}")
+            logger.error(f"Error details: {repr(e)}")
+            logger.error(f"String at error: {repr(string[idx:])}")
             raise
     
     def decode(self, s, *args, **kwargs):
         """JSONデコード処理のカスタマイズ"""
         try:
+            logger.debug("=== Decode Process Start ===")
+            
             # デコード前の入力検証
             if not isinstance(s, str):
                 raise json.JSONDecodeError("Input must be a string", s, 0)
             
+            logger.debug("=== Initial Input ===")
+            logger.debug(f"Input type: {type(s)}")
+            logger.debug(f"Input repr: {repr(s)}")
+            logger.debug(f"Input bytes: {s.encode('utf-8')}")
+            logger.debug(f"Input chars: {[ord(c) for c in s]}")
+            
             # 入力文字列の正規化
             s = s.strip()
-            logger.debug(f"Input JSON: {repr(s)}")
+            logger.debug("=== After Strip ===")
+            logger.debug(f"Stripped input: {repr(s)}")
             
             # デコード処理
+            logger.debug("=== Starting Parent Decode ===")
             result = super().decode(s, *args, **kwargs)
+            logger.debug(f"Parent decode result: {repr(result)}")
             
             # デコード後の検証と正規化
             if isinstance(result, dict):
+                logger.debug("=== Processing Dictionary ===")
                 if 'url' in result and isinstance(result['url'], str):
-                    result['url'] = self._normalize_url(result['url'])
+                    logger.debug("=== URL Processing in Decode ===")
+                    original_url = result['url']
+                    logger.debug(f"Original URL in decode: {repr(original_url)}")
+                    logger.debug(f"URL bytes in decode: {original_url.encode('utf-8')}")
+                    logger.debug(f"URL chars in decode: {[ord(c) for c in original_url]}")
+                    
+                    result['url'] = self._normalize_url(original_url)
+                    logger.debug(f"Normalized URL in decode: {repr(result['url'])}")
                 
                 # 数値型の復元
                 if 'count' in result and isinstance(result['count'], str):
                     try:
                         result['count'] = int(result['count'])
+                        logger.debug(f"Converted count to int: {result['count']}")
                     except ValueError:
+                        logger.warning(f"Failed to convert count: {result['count']}")
                         pass
             
-            logger.debug("=== Decode Result ===")
-            logger.debug(f"Final result: {repr(result)}")
+            logger.debug("=== Final Decode Result ===")
+            logger.debug(f"Result type: {type(result)}")
+            logger.debug(f"Final result repr: {repr(result)}")
             
             return result
             
         except Exception as e:
             logger.error(f"Error in custom decoder: {str(e)}")
+            logger.error(f"Error details: {repr(e)}")
+            logger.error(f"Input at error: {repr(s)}")
             raise
 
 @app.route('/')
