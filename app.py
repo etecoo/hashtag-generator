@@ -17,10 +17,13 @@ def get_requesty_client():
     if not api_key:
         raise ValueError("REQUESTY_API_KEY is not set")
     
-    return openai.OpenAI(
+    # OpenAIクライアントの設定を修正
+    client = openai.OpenAI(
         api_key=api_key,
-        base_url="https://router.requesty.ai/v1"
+        base_url="https://router.requesty.ai/v1",
+        timeout=30.0  # タイムアウトを設定
     )
+    return client
 
 def validate_instagram_url(url):
     """InstagramのURLを検証する"""
@@ -54,38 +57,36 @@ class CustomJSONDecoder(json.JSONDecoder):
     """カスタムJSONデコーダー - セミコロン問題に対する包括的な解決策"""
     
     def __init__(self, *args, **kwargs):
+        # parse_floatとparse_intを無効化して文字列として扱う
+        kwargs['parse_float'] = str
+        kwargs['parse_int'] = str
         super().__init__(*args, **kwargs)
         self._original_parse_string = self.parse_string
         self.parse_string = self._custom_parse_string
     
+    def _normalize_url(self, url):
+        """URLの正規化処理"""
+        # セミコロンとその前後の不要な文字を除去
+        normalized = re.sub(r'[;\s]+', '', url)
+        logger.debug(f"URL Normalization: {url} -> {normalized}")
+        return normalized
+    
     def _custom_parse_string(self, string, idx, *args, **kwargs):
         """文字列パース時の特別な処理"""
-        # パース前の文字列の状態をログ
-        logger.debug("=== String Parse Debug ===")
-        logger.debug(f"Input string: {repr(string[idx:])}")
-        logger.debug(f"Parse position: {idx}")
-        logger.debug(f"String encoding: {string[idx:].encode('utf-8')}")
-        
         try:
+            # パース前の文字列の状態をログ
+            logger.debug("=== String Parse Debug ===")
+            logger.debug(f"Input string: {repr(string[idx:])}")
+            
             # 元のパーサーで文字列を解析
             end_idx, parsed = self._original_parse_string(string, idx, *args, **kwargs)
             
             # パース結果の検証と正規化
-            if parsed:
+            if parsed and isinstance(parsed, str):
                 # URLの場合の特別な処理
                 if re.match(r'https?://(?:www\.)?instagram\.com/', parsed):
-                    # セミコロンとその前後の不要な文字を除去
-                    normalized = re.sub(r'[;]+', '', parsed)
-                    normalized = re.sub(r'\s+', '', normalized)
-                    
-                    logger.debug("=== URL Normalization ===")
-                    logger.debug(f"Original: {repr(parsed)}")
-                    logger.debug(f"Normalized: {repr(normalized)}")
-                    
-                    return end_idx, normalized
-                else:
-                    # 一般的な文字列の場合
-                    normalized = parsed.strip().rstrip(';')
+                    normalized = self._normalize_url(parsed)
+                    logger.debug(f"Normalized URL: {normalized}")
                     return end_idx, normalized
             
             return end_idx, parsed
@@ -103,16 +104,22 @@ class CustomJSONDecoder(json.JSONDecoder):
             
             # 入力文字列の正規化
             s = s.strip()
+            logger.debug(f"Input JSON: {repr(s)}")
             
             # デコード処理
             result = super().decode(s, *args, **kwargs)
             
-            # デコード後の検証
+            # デコード後の検証と正規化
             if isinstance(result, dict):
-                # URLフィールドの特別な処理
                 if 'url' in result and isinstance(result['url'], str):
-                    result['url'] = re.sub(r'[;]+', '', result['url'])
-                    result['url'] = re.sub(r'\s+', '', result['url'])
+                    result['url'] = self._normalize_url(result['url'])
+                
+                # 数値型の復元
+                if 'count' in result and isinstance(result['count'], str):
+                    try:
+                        result['count'] = int(result['count'])
+                    except ValueError:
+                        pass
             
             logger.debug("=== Decode Result ===")
             logger.debug(f"Final result: {repr(result)}")
